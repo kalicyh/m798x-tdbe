@@ -201,7 +201,6 @@ function l1dat_parser.load_l1_profile(path)
     local ridx = l1dat_parser.IF_RINDEX
     local dridx = l1dat_parser.DEV_RINDEX
     local band_num = l1dat_parser.MAX_NUM_DBDC_BAND
-    local k, v, dev, i , j, last
     local devname
     devs[ridx] = {}
     devs[dridx] = {}

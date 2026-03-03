@@ -239,6 +239,9 @@ mediatek_setup_interfaces()
 	mediatek,mt7988a-mxl86252-rfb*)
 		ucidef_set_interfaces_lan_wan "mxl_lan0 mxl_lan1 mxl_lan2 mxl_lan3 lan2 lan3" eth1
 		;;
+    tenda,be12-pro)
+        ucidef_set_interfaces_lan_wan "lan3 lan4 lan5 eth1" eth2
+        ;;
 	hiveton,h5000m|\
 	mediatek,mt7987*)
 		ucidef_set_interfaces_lan_wan "eth0 hnat" eth1

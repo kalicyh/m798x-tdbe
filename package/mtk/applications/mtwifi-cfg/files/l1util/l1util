@@ -97,7 +97,7 @@ local action = {
         local band_num = l1parser.MAX_NUM_DBDC_BAND
         local dbdc_if
         local count = 0
-        for k, v in pairs(l1dat) do
+        for _, v in pairs(l1dat) do
             -- check if last dbdc exists
             dbdc_if = l1parser.token_get(v.main_ifname, band_num, nil)
             if dbdc_if then

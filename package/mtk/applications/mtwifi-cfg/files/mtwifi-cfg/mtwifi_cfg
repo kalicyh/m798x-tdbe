@@ -182,7 +182,7 @@ function vif_count(cfg)
     local ap_num = 0
     local apcli_num = 0
 
-    for k,v in pairs(cfg.interfaces) do
+    for _,v in pairs(cfg.interfaces) do
         vif_num = vif_num + 1
         if v.config.mode == "ap" then
             ap_num = ap_num + 1

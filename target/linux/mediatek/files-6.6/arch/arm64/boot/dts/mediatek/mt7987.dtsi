@@ -112,17 +112,17 @@
 			compatible = "operating-points-v2";
 			opp-shared;
 			opp00 {
-                                opp-hz = /bits/ 64 <2000000000>;
-                                opp-microvolt = <850000>;
-                        };
+				opp-hz = /bits/ 64 <500000000>;
+				opp-microvolt = <850000>;
+			};
 			opp01 {
-                                opp-hz = /bits/ 64 <2000000000>;
-                                opp-microvolt = <850000>;
-                        };
+				opp-hz = /bits/ 64 <1300000000>;
+				opp-microvolt = <850000>;
+			};
 			opp02 {
-                                opp-hz = /bits/ 64 <2000000000>;
-                                opp-microvolt = <850000>;
-                        };
+				opp-hz = /bits/ 64 <1600000000>;
+				opp-microvolt = <850000>;
+			};
 			opp03 {
 				opp-hz = /bits/ 64 <2000000000>;
 				opp-microvolt = <850000>;
@@ -237,7 +237,7 @@
 
 	fan: pwm-fan {
 		compatible = "pwm-fan";
-		cooling-levels = <0 128 255>;
+		cooling-levels = <0 128 192 255>;
 		#cooling-cells = <2>;
 		#thermal-sensor-cells = <1>;
 		status = "disabled";
@@ -713,9 +713,10 @@
 			clocks = <&infracfg CLK_INFRA_PCIE_PIPE_P0>,
 				 <&infracfg CLK_INFRA_PCIE_GFMUX_TL_P0>,
 				 <&infracfg CLK_INFRA_PCIE_PERI_26M_CK_P0>,
-				 <&infracfg CLK_INFRA_133M_PCIE_CK_P0>;
+				 <&infracfg CLK_INFRA_133M_PCIE_CK_P0>,
+				 <&topckgen CLK_TOP_PEXTP_TL_SEL>;
 			clock-names = "pl_250m", "tl_26m", "peri_26m",
-				      "top_133m";
+				      "top_133m", "pextp_clk";
 			status = "disabled";
 			#interrupt-cells = <1>;
 			interrupt-map-mask = <0 0 0 0x7>;

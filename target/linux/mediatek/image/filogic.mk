@@ -463,6 +463,28 @@ define Device/hiveton-h5000m
 endef
 TARGET_DEVICES += hiveton-h5000m
 
+define Build/tenda-mkdualimageheader
+	printf '%b' "\x47\x6f\x64\x31\x00\x00\x00\x00" >"$@.new"
+	gzip -c "$@" | tail -c8 >>"$@.new"
+	cat "$@" >>"$@.new"
+	mv "$@.new" "$@"
+endef
+
+define Device/tenda_be12-pro
+  DEVICE_VENDOR := Tenda
+  DEVICE_MODEL := BE12 Pro
+  DEVICE_DTS := mt7987a-tenda-be12-pro
+  DEVICE_DTS_DIR := $(DTS_DIR)/
+  DEVICE_PACKAGES := mt798x-2p5g-phy-firmware-internal kmod-sfp blkid airoha-en8811h-firmware kmod-phy-airoha-en8811h kmod-mt7992-firmware
+  UBINIZE_OPTS := -E 5
+  BLOCKSIZE := 128k
+  PAGESIZE := 2048
+  KERNEL_LOADADDR := 0x40000000
+  KERNEL_INITRAMFS := kernel-bin | lzma | \
+        fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd | pad-to 64k
+  IMAGE/sysupgrade.bin := append-kernel | tenda-mkdualimageheader | sysupgrade-tar kernel=$$$$@ | append-metadata
+endef
+TARGET_DEVICES += tenda_be12-pro
 
 define Device/bananapi_bpi-r4-lite
   DEVICE_VENDOR := Bananapi

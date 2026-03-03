@@ -1,105 +1,119 @@
-<img src="https://avatars.githubusercontent.com/u/53193414?s=200&v=4" alt="logo" width="200" height="200" align="right">
+# Tenda BE12 Pro (BE7200 Ultra) ImmortalWrt-798x 固件
 
-# Project ImmortalWrt
+## 📝 概述
+旨在为 **Tenda BE12 Pro (Tenda BE7200 Ultra)** 路由器构建基于 **ImmortalWrt-798x** 的轻量化固件。
+- **核心特性**：启用 MTK_HNAT 及无线闭源驱动
+- **平台**：MT7987_MT7992
 
-ImmortalWrt is a fork of [OpenWrt](https://openwrt.org), with more packages ported, more devices supported, default optimized profiles and localization modifications for mainland China users.<br/>
-Compared to upstream, we allow to use (non-upstreamable) modifications/hacks to provide better feature/performance/support.
+## ⚠️ 免责声明
+> **重要提示**：
+> 1. 本项目仅供技术研究与个人娱乐。
+> 2. 本人**无任何**嵌入式、内核、C 语言、OpenWrt 开发经验。
+> 3. 本固件基于社区大佬的代码库，结合 AI 辅助分析与验证整合而成。
+> 4. **刷机有风险，操作需谨慎**。因刷写本固件导致的设备变砖、硬件损坏或数据丢失，本人概不负责。请大家自行评估风险。
 
-Default login address: http://192.168.6.1 or http://immortalwrt.lan, username: __root__, password: _none_.
 
-## Download
-Built firmware images are available for many architectures and come with a package selection to be used as WiFi home router. To quickly find a factory image usable to migrate from a vendor stock firmware to ImmortalWrt, try the *Firmware Selector*.
+## 🔧 固件刷入与使用指南
 
-- [ImmortalWrt Firmware Selector](https://firmware-selector.immortalwrt.org/)
+#### 📥 刷机教程
+*   **详细步骤**：请参考 [Right Forum 原帖](https://www.right.com.cn/forum/thread-8463884-1-1.html)
 
-If your device is supported, please follow the **Info** link to see install instructions or consult the support resources listed below.
+#### 🔐 默认登录信息
+刷入固件后，请使用以下默认账号密码登录：
 
-## Development
-To build your own firmware you need a GNU/Linux, BSD or macOS system (case sensitive filesystem required). Cygwin is unsupported because of the lack of a case sensitive file system.<br/>
+| 项目 | 内容 |
+| :--- | :--- |
+| **用户名** | `root` |
+| **密码** | `admin` |
 
-  ### Requirements
-  To build with this project, Debian 11 is preferred. And you need use the CPU based on AMD64 architecture, with at least 4GB RAM and 25 GB available disk space. Make sure the __Internet__ is accessible.
+#### 📊 使用体验反馈
+*   **🌡️ 温度表现**：相比官方原厂固件，设备运行温度**有所下降**。
+*   **📶 信号强度**：
+    *   **5G 无线信号**：体感上与原厂固件**无异**。
+    *   *注：后续将进行更详细的信号测试并更新数据。*
 
-  The following tools are needed to compile ImmortalWrt, the package names vary between distributions.
+## 🔍 开发适配思路与方法论
+针对缺乏底层开发经验的现状，采用“自底向上”的分析策略：
 
-  - Here is an example for Debian/Ubuntu users:<br/>
-    - Method 1:
-      <details>
-        <summary>Setup dependencies via APT</summary>
+1.  **DTS 节点解析**：从设备树源文件 (`.dts`) 入手，逐行阅读并理解各节点定义的硬件功能及其关联关系。
+2.  **硬件交互分析**：梳理 CPU 内部模块（GMAC, PCIe）与外部组件（交换机、PHY、无线网卡）的连接拓扑与通信机制。
+3.  **架构可视化**：基于 DTS 分析结果，绘制硬件逻辑架构图，直观展示数据通路。
+4.  **数据流推导**：根据架构图模拟数据流转路径（如：WiFi ↔ LAN/WAN），以此推导 HNAT 加速引擎与无线驱动在系统中的工作节点。
+5.  **代码验证迭代**：定位关键配置文件（DTS, Config 等），进行修改、编译与真机验证，逐步完善功能。
 
-        ```bash
-        sudo apt update -y
-        sudo apt full-upgrade -y
-        sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-          bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-          g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
-          libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
-          libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
-          ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
-          python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
-          upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
-        ```
-      </details>
-    - Method 2:
-      ```bash
-      sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
-      ```
+## 🏗️ Tenda BE12 Pro 硬件架构分析
 
-  Note:
-  - Do everything as an unprivileged user, not root, without sudo.
-  - Using CPUs based on other architectures should be fine to compile ImmortalWrt, but more hacks are needed - No warranty at all.
-  - You must __not__ have spaces or non-ascii characters in PATH or in the work folders on the drive.
-  - If you're using Windows Subsystem for Linux (or WSL), removing Windows folders from PATH is required, please see [Build system setup WSL](https://openwrt.org/docs/guide-developer/build-system/wsl) documentation.
-  - Using macOS as the host build OS is __not__ recommended. No warranty at all. You can get tips from [Build system setup macOS](https://openwrt.org/docs/guide-developer/build-system/buildroot.exigence.macosx) documentation.
-  - For more details, please see [Build system setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem) documentation.
+基于 MT7987 SoC 的数据流向与硬件连接示意如下：
 
-  ### Quickstart
-  1. Run `git clone -b mt798x-mt799x-6.6-mtwifi --single-branch --filter=blob:none https://github.com/padavanonly/immortalwrt-mt798x-24.10 immortalwrt-mt798x-24.10` to clone the source code.
-  2. Run `cd immortalwrt-mt798x-24.10` to enter source directory.
-  3. Run `./scripts/feeds update -a` to obtain all the latest package definitions defined in feeds.conf / feeds.conf.default
-  4. Run `./scripts/feeds install -a` to install symlinks for all obtained packages into package/feeds/
-  5. Copy the configuration file for your device from the `defconfig` directory to the project root directory and rename it `.config`
-     
-     ```
-     # MT7988_mt7990
-     cp -f defconfig/mt7988_mt7990.config .config
+```mermaid
+flowchart LR
+    subgraph SoC ["🖥️ MT7987 SoC (CPU 内部)"]
+        direction TB
+        
+        CPU[("💻 CPU 核心<br/>(路由/NAT/桥接处理)")]
+        MATRIX{"⚡ 内部高速交换矩阵<br/>(Hardware Offload Engine)"}
+        
+        GMAC0["🔌 GMAC0<br/>(2.5G 控制器)"]
+        GMAC1["🔌 GMAC1<br/>(2.5G 控制器)"] 
+        GMAC2["🔌 GMAC2<br/>(2.5G 控制器)"]
+        PCIE["🔌 PCIe 控制器"]
+        
+        INT_PHY["🟢 内部集成 2.5G PHY<br/>(eth1 物理层)"]
+        
+        %% 内部逻辑连接
+        CPU --- MATRIX
+        MATRIX --- GMAC0
+        MATRIX --- GMAC1
+        MATRIX --- GMAC2
+        MATRIX --- PCIE
+        
+        GMAC1 --- INT_PHY
+    end
 
-     # MT7987_mt7992
-     cp -f defconfig/mt7987_mt7992.config .config
+    subgraph External ["🌐 外部电路与接口"]
+        direction TB
+        
+        EXT_PHY2["🔵 独立 2.5G PHY 芯片"]
+        AN8855["🟠 AN8855 交换机芯片<br/>(管理 lan3-lan5)"]
+        WIFI_CHIP["📶 MT7992 WiFi 6E 芯片"]
+        
+        PORT_ETH1(("🔘 eth1 网口<br/>(直连 CPU 2.5G)"))
+        PORT_ETH2(("🔘 eth2 网口<br/>(WAN 2.5G)"))
+        PORT_LAN(("🔘 lan3/4/5<br/>(交换机下联)"))
+    end
 
-     # MT7988_mt7992
-     cp -f defconfig/mt7988_mt7992.config .config
+    %% === 关键物理连接 ===
+    INT_PHY ==>|内部直连/2.5G | PORT_ETH1
+    GMAC2 ==>|2500base-x 信号 | EXT_PHY2
+    EXT_PHY2 --- PORT_ETH2
+    
+    GMAC0 ==>|2500base-x 信号 | AN8855
+    AN8855 --- PORT_LAN
+    
+    PCIE ==>|PCIe 总线 | WIFI_CHIP
 
-     
-  6. Run `make` to build your firmware. This will download all sources, build the cross-compile toolchain and then cross-compile the GNU/Linux kernel & all chosen applications for your target system.
+    %% === 演示流量路径：WiFi <-> eth2 (WAN) ===
+    WIFI_CHIP -.->|1. 数据接收 | PCIE
+    PCIE -.->|2. 矩阵转发 | GMAC2
+    GMAC2 -.->|3. 2500base-x 输出 | EXT_PHY2
+    EXT_PHY2 -.->|4. 信号转换 | PORT_ETH2
+    
+    %% 样式定义
+    style INT_PHY fill:#0f0,stroke:#090,stroke-width:3px,color:black
+    style EXT_PHY2 fill:#00f,stroke:#009,stroke-width:2px,color:white
+    style AN8855 fill:#f90,stroke:#960,stroke-width:2px,color:black
+    style MATRIX fill:#ffeb3b,stroke:#fbc02d,stroke-width:2px,color:black
+    
+    style PORT_ETH2 fill:#e0f7fa,stroke:#006064,stroke-dasharray: 5 5
+    style GMAC2 fill:#bbf,stroke:#009,stroke-width:2px,color:black
+```
 
-  ### Related Repositories
-  The main repository uses multiple sub-repositories to manage packages of different categories. All packages are installed via the OpenWrt package manager called opkg. If you're looking to develop the web interface or port packages to ImmortalWrt, please find the fitting repository below.
-  - [LuCI Web Interface](https://github.com/immortalwrt/luci): Modern and modular interface to control the device via a web browser.
-  - [ImmortalWrt Packages](https://github.com/immortalwrt/packages): Community repository of ported packages.
-  - [OpenWrt Routing](https://github.com/openwrt/routing): Packages specifically focused on (mesh) routing.
-  - [OpenWrt Video](https://github.com/openwrt/video): Packages specifically focused on display servers and clients (Xorg and Wayland).
+## 🙏 鸣谢与参考资源
+本项目站在巨人的肩膀上，特别感谢以下贡献者与开源项目：
 
-## Support Information
-For a list of supported devices see the [OpenWrt Hardware Database](https://openwrt.org/supported_devices)
-  ### Documentation
-  - [Quick Start Guide](https://openwrt.org/docs/guide-quick-start/start)
-  - [User Guide](https://openwrt.org/docs/guide-user/start)
-  - [Developer Documentation](https://openwrt.org/docs/guide-developer/start)
-  - [Technical Reference](https://openwrt.org/docs/techref/start)
-
-  ### Support Community
-  - Support Chat: group [@ctcgfw_openwrt_discuss](https://t.me/ctcgfw_openwrt_discuss) on [Telegram](https://telegram.org/).
-  - Support Chat: group [#immortalwrt](https://matrix.to/#/#immortalwrt:matrix.org) on [Matrix](https://matrix.org/).
-
-## License
-ImmortalWrt is licensed under [GPL-2.0-only](https://spdx.org/licenses/GPL-2.0-only.html).
-
-## Acknowledgements
-<table>
-  <tr>
-    <td><a href="https://dlercloud.com/"><img src="https://user-images.githubusercontent.com/22235437/111103249-f9ec6e00-8588-11eb-9bfc-67cc55574555.png" width="183" height="52" border="0" alt="Dler Cloud"></a></td>
-    <td><a href="https://www.jetbrains.com/"><img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_square.png" width="120" height="120" border="0" alt="JetBrains Black Box Logo logo"></a></td>
-    <td><a href="https://sourceforge.net/"><img src="https://sourceforge.net/sflogo.php?type=17&group_id=3663829" alt="SourceForge" width=200></a></td>
-  </tr>
-</table>
+| 贡献者/组织 | 参考链接 | 备注                                       |
+| :--- | :--- |:-----------------------------------------|
+| **padavanonly** | [GitHub: immortalwrt-mt798x-6.6](https://github.com/padavanonly/immortalwrt-mt798x-6.6/tree/mt798x-mt799x-6.6-mtwifi) | 代码库源头，项目基石                               |
+| **igetmail** | [Right Forum Thread](https://www.right.com.cn/forum/thread-8463884-1-1.html) | 详尽的刷机保命指南，新手福音                           |
+| **5252pt** | [OpenWrt PR #21461](https://github.com/openwrt/openwrt/pull/21461) | 推动 Tenda BE12 Pro 进入 OpenWrt 主线，设备DTS源头。 |
+| **hanwckf** | [CMi Blog](https://cmi.hanwckf.top/p/immortalwrt-mt798x/) | MT798x 系列先行者，技术指引|

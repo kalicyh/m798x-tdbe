@@ -1350,7 +1350,6 @@ return view.extend({
 					o.depends('mode', 'sta');
 
 					o = ss.taboption('advanced', form.Flag, 'ieee80211k', _('802.11k'), _('Enables The 802.11k standard provides information to discover the best available access point'));
-					o.default = o.enabled;
 					o.depends('mode', 'ap');
 
 					o = ss.taboption('advanced', form.Flag, 'bss_transition', _('BSS Transition'), _('802.11v: Basic Service Set (BSS) transition management.'));

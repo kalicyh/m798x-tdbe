@@ -1,0 +1,85 @@
+name: Build ImmortalWrt
+
+on:
+  push:
+    branches:
+      - tenda-be12-pro
+  workflow_dispatch: # 允许手动在网页触发
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout My Repository Source
+        uses: actions/checkout@v4
+        with:
+          ref: tenda-be12-pro  # 指定要检出的分支
+          fetch-depth: 0 # 获取完整历史，方便某些脚本获取版本号（可选）
+
+      - name: Initialize Build Environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          # 安装 OpenWrt/ImmortalWrt 构建所需依赖
+          sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
+          
+          sudo timedatectl set-timezone "Asia/Shanghai"
+      
+
+      - name: Update and Install Feeds
+        run: |
+          # 当前目录已经是源码根目录
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Load Configuration (mt7987_mt7992)
+        run: |
+          # 检查配置文件是否存在
+          if [ -f "defconfig/mt7987_mt7992.config" ]; then
+            cp -f defconfig/mt7987_mt7992.config .config
+            echo "✅ Successfully loaded defconfig/mt7987_mt7992.config"
+            
+            # 👇 新增：打印 .config 文件内容到日志
+            echo "📄 Content of .config:"
+            cat .config
+            
+            # 执行 make defconfig 以确保配置完整并处理依赖
+            make defconfig 
+            
+          else
+            echo "❌ Error: defconfig/mt7987_mt7992.config not found in defconfig/ directory!"
+            ls -R defconfig/
+            exit 1
+          fi
+
+          # ⭐ 修复 ebtables 下载问题 (镜像站文件哈希不匹配)
+          EBTABLES_MAKEFILE="package/network/utils/ebtables/Makefile"
+          if [ -f "$EBTABLES_MAKEFILE" ]; then
+            echo "🔧 修复 ebtables 下载源和哈希..."
+            # 使用 netfilter 官方 GitHub 镜像
+            sed -i 's|https://git.netfilter.org/ebtables|https://github.com/netfilter/ebtables.git|g' "$EBTABLES_MAKEFILE"
+            sed -i 's|git://git.netfilter.org/ebtables|https://github.com/netfilter/ebtables.git|g' "$EBTABLES_MAKEFILE"
+            # 更新哈希值为镜像站实际提供的文件哈希 (解决哈希不匹配问题)
+            sed -i 's|PKG_MIRROR_HASH:=.*|PKG_MIRROR_HASH:=skip|g' "$EBTABLES_MAKEFILE"
+            echo "✅ ebtables 下载源已修复"
+          fi
+      - name: Compile Firmware
+        run: |
+          # 开始编译
+          # -j$(nproc) 使用所有可用 CPU 核心
+          # V=s 输出详细日志以便排查错误
+          make -j$(nproc) V=s
+
+      - name: Create a release
+        uses: softprops/action-gh-release@v2
+        with:
+          make_latest: true # 对应原来的 makeLatest: true
+          tag_name: mt7987_mt7992-tenda-be12pro-${{ github.run_number }}
+          files: | 
+            bin/targets/mediatek/filogic/*
+          generate_release_notes: true
+#          draft: true
+#          prerelease: false
