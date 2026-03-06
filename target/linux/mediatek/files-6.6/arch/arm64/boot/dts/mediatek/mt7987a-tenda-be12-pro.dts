@@ -390,14 +390,47 @@
 };
 
 &hnat {
-	mtketh-wan = "eth2";
-	mtketh-lan = "lan";
-	mtketh-lan2 = "eth1";
-	mtketh-ppd = "eth0";
-	mtketh-max-gmac = <3>;
-	mtketh-ppe-num = <2>;
-	ext-devices-prefix = "usb","wwan","rmnet","eth3","eth4","phy";
-	status = "okay";
+    /*
+     * WAN: 独立连接的 GMAC2 (eth2)
+     */
+    mtketh-wan = "eth2";
+
+    /*
+     * LAN: 指向连接交换机的 GMAC0 (eth0)。
+     * 原因: 背后的 lan3, lan4, lan5 物理口流量都通过 eth0 (带 VLAN) 传输。
+     * 必须将 eth0 设为 LAN 才能让这些口走硬件加速。
+     */
+    mtketh-lan = "eth0";
+
+    /*
+     * LAN2: 指向独立的 GMAC1 (eth1)。
+     * 原因: 这是一个额外的独立 LAN 口，也应加入加速。
+     */
+    mtketh-lan2 = "eth1";
+
+    /*
+     * PPD: 必须是连接交换机的 GMAC0 (eth0)。
+     * 注意: mtketh-lan 和 mtketh-ppd 在这里指向同一个接口是完全正确的。
+     * 流量路径 A (背后 LAN 口): 用户设备 -> lan3 -> 交换机 -> eth0 -> CPU/HNAT。
+     * 流量路径 B (独立 LAN 口): 用户设备 -> eth1 -> CPU/HNAT。
+     * PPD 的作用是作为 “交换机流量的总闸门”。HNAT 硬件逻辑被设计为：所有来自内部交换机（Switch Fabric）的未知单播、组播或广播包，默认都通过 PPD 接口上报给 CPU。
+     * 如果你设 ppd = "eth0"：交换机里的包能正确上报给 CPU。
+     */
+    mtketh-ppd = "eth0";
+
+    /* 总共使用了 gmac0, gmac1, gmac2 */
+    mtketh-max-gmac = <3>;
+
+    /*
+     * PPE 数量:
+     * 建议先填 <1> 保证稳定性，除非你明确知道需要多 PPE 负载均衡。
+     */
+    mtketh-ppe-num = <2>;
+
+    /* 扩展设备前缀，排除内部接口 */
+    ext-devices-prefix = "usb","wwan","rmnet","eth3","eth4","phy";
+
+    status = "okay";
 };
 
 &ssusb {
