@@ -25,7 +25,7 @@ detect_mtwifi() {
 
 				if [ "$band" = "2g" ]; then
 					htmode="EHT20"
-					htbsscoex="1"
+					htbsscoex="0"
 					ssid="ImmortalWrt-2.4G"
 					channel="auto"
 				elif [ "$band" = "5g" ]; then
@@ -59,6 +59,8 @@ detect_mtwifi() {
 					set wireless.default_${dev}.mode=ap
 					set wireless.default_${dev}.ssid=${ssid}
 					set wireless.default_${dev}.encryption=none
+					set wireless.default_${dev}.mumimo_ul=1
+					set wireless.default_${dev}.mumimo_dl=1
 EOF
 				uci -q commit wireless
 			}
