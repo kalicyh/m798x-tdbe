@@ -6,6 +6,10 @@ on:
       - tenda-be12-pro
   workflow_dispatch: # 允许手动在网页触发
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -16,12 +20,34 @@ jobs:
       ISTORE_FEED_REPO: "https://github.com/linkease/istore"
       ISTORE_FEED_REF: "main"
       ISTORE_PACKAGE: "luci-app-store"
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_COMPRESS: "true"
+      CCACHE_MAXSIZE: "1500M"
+      CCACHE_BASEDIR: ${{ github.workspace }}
     
     steps:
       - name: Checkout My Repository Source
         uses: actions/checkout@v5
         with:
           fetch-depth: 0 # 获取完整历史，方便某些脚本获取版本号（可选）
+
+      - name: Restore Download Cache
+        uses: actions/cache@v5
+        with:
+          path: dl
+          key: ${{ runner.os }}-immortalwrt-dl-v1-${{ hashFiles('defconfig/mt7987_mt7992.config') }}
+          restore-keys: |
+            ${{ runner.os }}-immortalwrt-dl-v1-
+
+      - name: Restore Compiler Cache
+        id: ccache-restore
+        uses: actions/cache/restore@v5
+        with:
+          path: .ccache
+          key: ${{ runner.os }}-immortalwrt-ccache-v1-${{ github.ref_name }}-${{ hashFiles('defconfig/mt7987_mt7992.config') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-immortalwrt-ccache-v1-${{ github.ref_name }}-${{ hashFiles('defconfig/mt7987_mt7992.config') }}-
+            ${{ runner.os }}-immortalwrt-ccache-v1-
 
       - name: Initialize Build Environment
         env:
@@ -31,6 +57,20 @@ jobs:
           sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
           
           sudo timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Prepare Compiler Cache
+        run: |
+          set -euo pipefail
+
+          if ! command -v ccache >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ccache
+          fi
+
+          mkdir -p "${CCACHE_DIR}" dl
+          ccache -M "${CCACHE_MAXSIZE}"
+          ccache --zero-stats || true
+          ccache --show-config | sed -n '1,20p'
       
       - name: Mutate Feeds for iStore
         if: env.ENABLE_ISTORE == 'true'
@@ -57,14 +97,23 @@ jobs:
 
       - name: Load Configuration (mt7987_mt7992)
         run: |
+          set_config() {
+            local key="$1"
+            local value="$2"
+
+            if grep -q "^# ${key} is not set$" .config; then
+              sed -i "s|^# ${key} is not set$|${key}=${value}|" .config
+            elif grep -q "^${key}=" .config; then
+              sed -i "s|^${key}=.*$|${key}=${value}|" .config
+            else
+              echo "${key}=${value}" >> .config
+            fi
+          }
+
           enable_package() {
             local pkg="$1"
 
-            if grep -q "^# CONFIG_PACKAGE_${pkg} is not set$" .config; then
-              sed -i "s/^# CONFIG_PACKAGE_${pkg} is not set$/CONFIG_PACKAGE_${pkg}=y/" .config
-            elif ! grep -q "^CONFIG_PACKAGE_${pkg}=y$" .config; then
-              echo "CONFIG_PACKAGE_${pkg}=y" >> .config
-            fi
+            set_config "CONFIG_PACKAGE_${pkg}" "y"
           }
 
           # 检查配置文件是否存在
@@ -72,17 +121,18 @@ jobs:
             cp -f defconfig/mt7987_mt7992.config .config
             echo "✅ Successfully loaded defconfig/mt7987_mt7992.config"
 
+            set_config "CONFIG_CCACHE" "y"
+
             if [ "${ENABLE_ISTORE}" = "true" ]; then
               enable_package "${ISTORE_PACKAGE}"
               echo "✅ Enabled ${ISTORE_PACKAGE} in .config"
             fi
-            
-            # 👇 新增：打印 .config 文件内容到日志
-            echo "📄 Content of .config:"
-            cat .config
-            
+
             # 执行 make defconfig 以确保配置完整并处理依赖
-            make defconfig 
+            make defconfig
+
+            echo "📄 Key build options:"
+            grep -E '^(CONFIG_TARGET_|CONFIG_CCACHE=|CONFIG_PACKAGE_luci-app-store=)' .config || true
             
           else
             echo "❌ Error: defconfig/mt7987_mt7992.config not found in defconfig/ directory!"
@@ -101,12 +151,31 @@ jobs:
             sed -i 's|PKG_MIRROR_HASH:=.*|PKG_MIRROR_HASH:=skip|g' "$EBTABLES_MAKEFILE"
             echo "✅ ebtables 下载源已修复"
           fi
+
+      - name: Download Sources
+        run: |
+          make download -j"$(nproc)"
+          find dl -type f -size -1024c -delete
+
       - name: Compile Firmware
         run: |
-          # 开始编译
-          # -j$(nproc) 使用所有可用 CPU 核心
-          # V=s 输出详细日志以便排查错误
-          make -j$(nproc) V=s
+          set -euo pipefail
+
+          ccache --show-stats || true
+
+          if ! make -j"$(nproc)"; then
+            echo "::warning::Parallel build failed, retrying with -j1 V=s for detailed logs"
+            make -j1 V=s
+          fi
+
+          ccache --show-stats || true
+
+      - name: Save Compiler Cache
+        if: always()
+        uses: actions/cache/save@v5
+        with:
+          path: .ccache
+          key: ${{ steps.ccache-restore.outputs.cache-primary-key }}
 
       - name: Create Draft Release
         env:
