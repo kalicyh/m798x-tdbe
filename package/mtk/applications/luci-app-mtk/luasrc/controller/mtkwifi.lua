@@ -131,6 +131,55 @@ function __mtkwifi_save_profile(cfgs, path, isProfileSettingsAppliedToDriver)
     end
 end
 
+local HT_BA_WIN_SIZE_MIN = 1
+local HT_BA_WIN_SIZE_MAX = 1024
+
+local function __count_profile_tokens(value)
+    local count = 0
+
+    if type(value) ~= "string" or value == "" then
+        return 0
+    end
+
+    for _ in string.gmatch(value, "([^;]+)") do
+        count = count + 1
+    end
+
+    return count
+end
+
+local function __normalize_ht_ba_winsize(raw_value, cfgs)
+    local token_count
+    local value = tostring(raw_value or "")
+
+    if not string.match(value, "^%d+$") then
+        return nil
+    end
+
+    value = tonumber(value)
+    if not value or value < HT_BA_WIN_SIZE_MIN or value > HT_BA_WIN_SIZE_MAX then
+        return nil
+    end
+
+    value = tostring(value)
+    token_count = __count_profile_tokens(cfgs and cfgs.HT_BAWinSize)
+
+    if token_count == 0 and cfgs and tonumber(cfgs.BssidNum) and tonumber(cfgs.BssidNum) > 0 then
+        token_count = tonumber(cfgs.BssidNum)
+    end
+
+    if token_count <= 1 then
+        return value
+    end
+
+    local values = {}
+    for i = 1, token_count do
+        values[i] = value
+    end
+
+    return table.concat(values, ";")
+end
+
 local __get_default_wan_ifname = function()
     local boardinfo = jsc.parse(nfs.readfile("/etc/board.json") or "")
     local wan_ifname = "eth1"
@@ -225,6 +274,7 @@ function chip_cfg(devname)
     local devs = mtkwifi.get_all_devs()
     local dbdc_cfgs = {}
     local dev = {}
+    local ht_ba_wsize = http.formvalue("HT_BAWinSize")
     dev = devs and devs[devname]
 
     for k,v in pairs(http.formvalue()) do
@@ -232,6 +282,8 @@ function chip_cfg(devname)
             nixio.syslog("err", "chip_cfg, invalid value type for "..k..","..type(v))
         elseif string.byte(k) == string.byte("_") then
             nixio.syslog("err", "chip_cfg, special: "..k.."="..v)
+        elseif k == "HT_BAWinSize" then
+            -- HT_BAWinSize is normalized and expanded right before saving the profile.
         else
             if dev.dbdc == true then
                 dbdc_cfgs[k] = v or ""
@@ -283,9 +335,20 @@ function chip_cfg(devname)
 
     if dev.dbdc == true then
         for devname, profile in pairs(profiles) do
-            __mtkwifi_save_profile(dbdc_cfgs, profile, false)
+            local profile_cfgs = mtkwifi.load_profile(profile)
+            local profile_updates = mtkwifi.deepcopy(dbdc_cfgs)
+
+            if ht_ba_wsize then
+                profile_updates.HT_BAWinSize = __normalize_ht_ba_winsize(ht_ba_wsize, profile_cfgs) or profile_cfgs.HT_BAWinSize
+            end
+
+            __mtkwifi_save_profile(profile_updates, profile, false)
         end
     else
+        if ht_ba_wsize then
+            cfgs.HT_BAWinSize = __normalize_ht_ba_winsize(ht_ba_wsize, cfgs) or cfgs.HT_BAWinSize
+        end
+
         __mtkwifi_save_profile(cfgs, profiles[devname], false)
     end
 
