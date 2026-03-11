@@ -425,6 +425,8 @@ static struct phy_driver en8811h_driver[] = {
 	.remove         = en8811h_remove,
 #if (KERNEL_VERSION(4, 5, 0) < LINUX_VERSION_CODE)
 	.get_features   = en8811h_get_features,
+	.config_aneg    = genphy_c45_config_aneg,
+	.read_status    = air_read_status,
 	.read_mmd       = __air_mii_cl45_read,
 	.write_mmd      = __air_mii_cl45_write,
 #endif

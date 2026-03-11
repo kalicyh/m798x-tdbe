@@ -85,6 +85,7 @@ int air_buckpbus_reg_write(struct phy_device *phydev,
 	unsigned int pbus_address, unsigned int pbus_data);
 int en8811h_of_init(struct phy_device *phydev);
 int air_surge_5ohm_config(struct phy_device *phydev);
+int air_read_status(struct phy_device *phydev);
 #ifdef CONFIG_AIROHA_EN8811H_PHY_DEBUGFS
 int airphy_debugfs_init(struct phy_device *phydev);
 void airphy_debugfs_remove(struct phy_device *phydev);
