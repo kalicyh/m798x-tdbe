@@ -19,7 +19,7 @@ jobs:
     
     steps:
       - name: Checkout My Repository Source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0 # 获取完整历史，方便某些脚本获取版本号（可选）
 
@@ -108,13 +108,29 @@ jobs:
           # V=s 输出详细日志以便排查错误
           make -j$(nproc) V=s
 
-      - name: Create a release
-        uses: softprops/action-gh-release@v2
-        with:
-          make_latest: true # 对应原来的 makeLatest: true
-          tag_name: mt7987_mt7992-tenda-be12pro-${{ github.run_number }}
-          files: | 
-            bin/targets/mediatek/filogic/*
-#          generate_release_notes: true
-          draft: true
-#          prerelease: false
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: mt7987_mt7992-tenda-be12pro-${{ github.run_number }}
+        run: |
+          set -euo pipefail
+
+          mapfile -t assets < <(find bin/targets/mediatek/filogic -maxdepth 1 -type f | sort)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "::error::No release assets found under bin/targets/mediatek/filogic"
+            exit 1
+          fi
+
+          gh --version
+
+          if gh release view "${TAG_NAME}" >/dev/null 2>&1; then
+            echo "Release ${TAG_NAME} already exists, recreating it for this rerun."
+            gh release delete "${TAG_NAME}" --cleanup-tag --yes
+          fi
+
+          gh release create "${TAG_NAME}" "${assets[@]}" \
+            --draft \
+            --target "${GITHUB_SHA}" \
+            --title "${TAG_NAME}"
+
+          gh release view "${TAG_NAME}" --json url --jq '.url'
