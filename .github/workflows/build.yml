@@ -1,9 +1,9 @@
 name: Build ImmortalWrt
 
 on:
-#  push:
-#    branches:
-#      - tenda-be12-pro
+  push:
+    branches:
+      - tenda-be12-pro
   workflow_dispatch: # 允许手动在网页触发
 
 jobs:
@@ -21,7 +21,6 @@ jobs:
       - name: Checkout My Repository Source
         uses: actions/checkout@v4
         with:
-          ref: tenda-be12-pro  # 指定要检出的分支
           fetch-depth: 0 # 获取完整历史，方便某些脚本获取版本号（可选）
 
       - name: Initialize Build Environment
