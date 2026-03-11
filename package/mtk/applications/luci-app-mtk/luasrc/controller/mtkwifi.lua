@@ -477,6 +477,8 @@ function __delete_mbss_para(cfgs, vif_idx)
     cfgs["MuOfdmaUlEnable"] = mtkwifi.token_set(cfgs["MuOfdmaUlEnable"],vif_idx,"")
     cfgs["MuMimoDlEnable"] = mtkwifi.token_set(cfgs["MuMimoDlEnable"],vif_idx,"")
     cfgs["MuMimoUlEnable"] = mtkwifi.token_set(cfgs["MuMimoUlEnable"],vif_idx,"")
+    cfgs["PpMuMimoDlEnable"] = mtkwifi.token_set(cfgs["PpMuMimoDlEnable"],vif_idx,"")
+    cfgs["PpMuMimoUlEnable"] = mtkwifi.token_set(cfgs["PpMuMimoUlEnable"],vif_idx,"")
 
 end
 
@@ -798,6 +800,8 @@ function __update_mbss_para(cfgs, vif_idx)
     cfgs.MuOfdmaUlEnable = mtkwifi.token_set(cfgs.MuOfdmaUlEnable, vif_idx, http.formvalue("__muofdma_ulenable") or "0")
     cfgs.MuMimoDlEnable = mtkwifi.token_set(cfgs.MuMimoDlEnable, vif_idx, http.formvalue("__mumimo_dlenable") or "0")
     cfgs.MuMimoUlEnable = mtkwifi.token_set(cfgs.MuMimoUlEnable, vif_idx, http.formvalue("__mumimo_ulenable") or "0")
+    cfgs.PpMuMimoDlEnable = mtkwifi.token_set(cfgs.PpMuMimoDlEnable, vif_idx, http.formvalue("__mumimo_dlenable") or "0")
+    cfgs.PpMuMimoUlEnable = mtkwifi.token_set(cfgs.PpMuMimoUlEnable, vif_idx, http.formvalue("__mumimo_ulenable") or "0")
 
 end
 
@@ -1418,4 +1422,3 @@ function reset_to_defaults(devname)
     mtkwifi.__run_in_child_env(exec_reset_to_defaults_cmd, devname)
     luci.http.redirect(luci.dispatcher.build_url("admin", "network", "wifi", "loading",mtkwifi.get_referer_url()))
 end
-

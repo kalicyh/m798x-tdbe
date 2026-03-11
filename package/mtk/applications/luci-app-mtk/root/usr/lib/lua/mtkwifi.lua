@@ -1223,10 +1223,15 @@ function mtkwifi.__setup_vifs(cfgs, devname, mainidx, subidx)
         vifs[vifs[j].vifname] = vifs[j]
 
         -- OFDMA and MU-MIMO
+        local mumimo_dl = mtkwifi.token_get(cfgs.MuMimoDlEnable, j, "0")
+        local mumimo_ul = mtkwifi.token_get(cfgs.MuMimoUlEnable, j, "0")
+        local pp_mumimo_dl = mtkwifi.token_get(cfgs.PpMuMimoDlEnable, j, mumimo_dl)
+        local pp_mumimo_ul = mtkwifi.token_get(cfgs.PpMuMimoUlEnable, j, mumimo_ul)
+
         vifs[j].__muofdma_dlenable = mtkwifi.token_get(cfgs.MuOfdmaDlEnable, j, mtkwifi.__split(cfgs.MuOfdmaDlEnable,";")[1])
         vifs[j].__muofdma_ulenable = mtkwifi.token_get(cfgs.MuOfdmaUlEnable, j, mtkwifi.__split(cfgs.MuOfdmaUlEnable,";")[1])
-        vifs[j].__mumimo_dlenable = mtkwifi.token_get(cfgs.MuMimoDlEnable, j, mtkwifi.__split(cfgs.MuMimoDlEnable,";")[1])
-        vifs[j].__mumimo_ulenable = mtkwifi.token_get(cfgs.MuMimoUlEnable, j, mtkwifi.__split(cfgs.MuMimoUlEnable,";")[1])
+        vifs[j].__mumimo_dlenable = (mumimo_dl == "1" or pp_mumimo_dl == "1") and "1" or "0"
+        vifs[j].__mumimo_ulenable = (mumimo_ul == "1" or pp_mumimo_ul == "1") and "1" or "0"
 
     end
 
